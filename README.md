@@ -32,13 +32,13 @@
    🇺🇸 **1º $\textcolor{red}{with\ API\ KEY\}$ (this version needs your [STEAMID](https://steamdb.info/calculator/) and your [APIKEY](https://steamcommunity.com/dev/apikey) to work, it can list only the games that you do not have in your account, making your life easier).**<p>
 
 🇧🇷 $\textcolor{red}{Com}$ API KEY / 🇺🇸 $\textcolor{red}{With}$ API KEY
-![image](https://github.com/user-attachments/assets/6af7d13b-5fc8-4a80-9e97-8fe1931e1eec)
+![image](https://github.com/user-attachments/assets/178ac5fd-83ef-4188-bdc3-3450e0adacb4)
 
  - 🇧🇷 2º $\textcolor{red}{sem\ API\ KEY\}$ (essa versão lista todos os jogos da lista).<br>
    🇺🇸 **2º $\textcolor{red}{without\ API\ KEY\}$ (this version lists all games in the list).**<p>
 
 🇧🇷 $\textcolor{red}{Sem}$ API KEY / 🇺🇸 $\textcolor{red}{No}$ API KEY
-![image](https://github.com/user-attachments/assets/adae6867-eb00-4d78-a166-818c9c8dc6e9)
+![image](https://github.com/user-attachments/assets/0c1ad325-6536-4ead-8bc9-726e1f5809e9)
    
 - 🇧🇷 Use o arquivo .csv que eu disponibilizei, ele possui a lista de todos os jogos que possuem drops de cartas até o momento.<br>
    🇺🇸 **Use the .csv file that I provided, it has a list of all the games that have card drops so far.**<p>
