@@ -151,6 +151,7 @@ class SteamPriceTracker:
                 data = response.json()
                 if 'response' in data and 'games' in data['response']:
                     return [game['appid'] for game in data['response']['games']]
+            logging.error(f"Failed to fetch owned games: {response.status_code}")
             return []
         except Exception as e:
             logging.error(f"Error fetching owned games: {e}")
@@ -290,28 +291,20 @@ class SteamPriceTracker:
         params = {'cc': currency, 'l': 'english'}
         
         try:
-            # Delay aleatório para evitar bloqueios
             time.sleep(random.uniform(0.5, 1))
-            
-            # Faz a requisição à página do jogo
             response = self.session.get(url, params=params, timeout=5)
             
-            # Tratamento para verificação de idade
             if 'agecheck' in response.url or 'mature_content' in response.text:
-                # Atualiza os cookies para contornar a verificação de idade
                 self.session.cookies.update({
-                    'birthtime': '786236401',  # Data de nascimento fixa (1 de janeiro de 1990)
+                    'birthtime': '786236401',
                     'mature_content': '1',
                     'wants_mature_content': '1',
                     'lastagecheckage': '1-January-1990'
                 })
                 response = self.session.get(url, params=params, timeout=5)
             
-            # Verifica se a requisição foi bem-sucedida
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
-                
-                # Verifica se o jogo tem cartas colecionáveis (usando 'string' em vez de 'text')
                 cards_info = soup.find('div', class_='label', string='Steam Trading Cards')
                 has_cards = cards_info is not None
 
@@ -429,10 +422,6 @@ class SteamPriceTracker:
         currency_code = self.currencies.get(self.currency_var.get(), 'br')
         total_games = len(self.data)
 
-        # Limita o número de workers para evitar sobrecarga
-        max_workers = min(self.max_workers, 10)  # Defina um limite máximo de workers
-        logging.info(f"Using {max_workers} workers for fetching prices.")
-
         def process_game(args):
             index, row = args
             app_id = row['AppId']
@@ -444,13 +433,12 @@ class SteamPriceTracker:
 
         game_args = list(self.data.iterrows())
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             for result in executor.map(process_game, game_args):
                 if self.stop_event.is_set():  # Interrompe se o evento foi sinalizado
                     break
                 if result:
-                    self.queue.put(result)  # Adiciona o resultado na fila
-            self.queue.put(None)  # Sinaliza o fim do processamento
+                    self.queue.put(result)
 
     def start_fetching_prices(self):
         self.status_var.set("Fetching prices...")
@@ -459,16 +447,14 @@ class SteamPriceTracker:
 
     def process_queue(self):
         try:
-            # Processa até 10 itens por vez para melhorar o desempenho
-            for _ in range(10):
-                if self.queue.empty():
-                    break
+            while not self.queue.empty():
                 if self.stop_event.is_set():  # Interrompe se o evento foi sinalizado
                     return
                 item = self.queue.get()
                 if item is None:
                     self.status_var.set("Price fetching complete!")
-                    self.sort_by_price()  # Ordena os preços após a conclusão
+                    self.sort_by_price()
+                    self.filter_free_games()  # Aplica o filtro após a conclusão
                     return
                 index, game, app_id, price, has_cards = item
                 # Verifica se o filtro está ativo e se o preço é "Free"
@@ -487,9 +473,7 @@ class SteamPriceTracker:
                 self.tree.item(self.tree.get_children()[index], tags=(bg_color,))
                 
                 self.progress_var.set((index + 1) / len(self.data) * 100)
-            
-            # Agenda a próxima execução do process_queue
-            self.root.after(100, self.process_queue)
+            self.root.after(100, self.process_queue)  # Agenda a próxima execução após 100ms
         except Exception as e:
             logging.error(f"Error processing queue: {e}")
 
