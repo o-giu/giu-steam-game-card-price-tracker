@@ -58,6 +58,9 @@
 
 <img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Flag_of_Brazil.svg" alt="Bandeira do Brasil" width="20"/> Os jogos listados com "Steam Trading Cards" são aqueles onde o drop de cartas é informado diretamente na página da loja do jogo! E os jogos listados com "No Cards Tag" são aqueles onde o drop de cartas não é informado diretamente na página da loja do jogo, mas esse jogo possui drops de carta sim.<br>
 <img src="https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg" alt="Bandeira dos EUA" width="20"/> **Games listed with "Steam Trading Cards" are those where card drops are listed directly on the game's store page! And games listed with "No Cards Tag" are those where card drops are not listed directly on the game's store page, but that game does have card drops.**<p>
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Flag_of_Brazil.svg" alt="Bandeira do Brasil" width="20"/> Você pode escolher listar os preços em diferentes tipos de moedas.<br>
+<img src="https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg" alt="Bandeira dos EUA" width="20"/> **You can choose to list prices in different types of currencies.**<p>
  
 <img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Flag_of_Brazil.svg" alt="Bandeira do Brasil" width="20"/> Você pode organizar os preço em ordem de menor para o maior ou vice e versa.<br>
 <img src="https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg" alt="Bandeira dos EUA" width="20"/> **You can arrange the prices in order from smallest to largest or vice versa.**<p>
