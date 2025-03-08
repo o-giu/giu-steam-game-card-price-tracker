@@ -1,4 +1,4 @@
-# Giu Steam Game Card Price Tracker
+# Steam Game Card Price Tracker
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/o-giu/giu-steam-game-card-price-tracker)](https://github.com/o-giu/giu-steam-game-card-price-tracker/releases/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/o-giu/giu-steam-game-card-price-tracker/blob/main/LICENSE)
