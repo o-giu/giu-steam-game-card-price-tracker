@@ -1,6 +1,5 @@
 # by Giu
 # https://github.com/o-giu
-# NO API KEY
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -241,121 +240,142 @@ class SteamPriceTracker:
         url = f"https://store.steampowered.com/app/{app_id}/"
         params = {'cc': currency, 'l': 'english'}
         
-        try:
-            time.sleep(random.uniform(0.5, 1))
-            response = self.session.get(url, params=params, timeout=5)
-            
-            # Tratamento para verificação de idade
-            if 'agecheck' in response.url or 'mature_content' in response.text:
-                self.session.cookies.update({
-                    'birthtime': '786236401',
-                    'mature_content': '1',
-                    'wants_mature_content': '1',
-                    'lastagecheckage': '1-January-1990'
-                })
-                response = self.session.get(url, params=params, timeout=5)
-            
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                # Increased sleep time to reduce rate limiting issues
+                time.sleep(random.uniform(1.5, 3))
+                response = self.session.get(url, params=params, timeout=10)  # Increased timeout
                 
-                # Verifica se o jogo tem cartas colecionáveis
-                cards_info = soup.find('div', class_='label', string='Steam Trading Cards')
-                has_cards = cards_info is not None
+                # Handling for 502 Bad Gateway and other server errors
+                if response.status_code >= 500:
+                    retry_count += 1
+                    logging.warning(f"Server error {response.status_code} for AppID {app_id}, retry {retry_count}/{max_retries}")
+                    time.sleep(retry_count * 2)  # Progressive backoff
+                    continue
+                
+                # Handling for age verification
+                if 'agecheck' in response.url or 'mature_content' in response.text:
+                    self.session.cookies.update({
+                        'birthtime': '786236401',
+                        'mature_content': '1',
+                        'wants_mature_content': '1',
+                        'lastagecheckage': '1-January-1990'
+                    })
+                    response = self.session.get(url, params=params, timeout=10)
+                
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    
+                    # Verifica se o jogo tem cartas colecionáveis
+                    cards_info = soup.find('div', class_='label', string='Steam Trading Cards')
+                    has_cards = cards_info is not None
 
-                def is_bundle_or_pack(container):
-                    # Verifica se há múltiplos jogos/DLCs listados
-                    package_contents = container.find('div', class_='game_area_purchase_game_packages')
-                    if package_contents:
-                        return True
+                    def is_bundle_or_pack(container):
+                        # Verifica se há múltiplos jogos/DLCs listados
+                        package_contents = container.find('div', class_='game_area_purchase_game_packages')
+                        if package_contents:
+                            return True
 
-                    # Verifica se há uma lista de itens incluídos
-                    included_items = container.find('div', class_='game_area_included_items')
-                    if included_items:
-                        return True
+                        # Verifica se há uma lista de itens incluídos
+                        included_items = container.find('div', class_='game_area_included_items')
+                        if included_items:
+                            return True
 
-                    # Verifica por indicadores específicos de bundle
-                    bundle_indicators = container.find_all(['div', 'p'], class_=['package_contents', 'package_contents_title'])
-                    if bundle_indicators:
-                        return True
+                        # Verifica por indicadores específicos de bundle
+                        bundle_indicators = container.find_all(['div', 'p'], class_=['package_contents', 'package_contents_title'])
+                        if bundle_indicators:
+                            return True
 
-                    # Verifica se há uma lista de DLCs
-                    dlc_list = container.find('div', class_='game_area_dlc_list')
-                    if dlc_list:
-                        return True
+                        # Verifica se há uma lista de DLCs
+                        dlc_list = container.find('div', class_='game_area_dlc_list')
+                        if dlc_list:
+                            return True
 
-                    return False
+                        return False
 
-                def is_demo(container):
-                    # Verifica se é uma demo no título do container
-                    title = container.find('h1')
-                    if title and 'demo' in title.text.lower():
-                        return True
+                    def is_demo(container):
+                        # Verifica se é uma demo no título do container
+                        title = container.find('h1')
+                        if title and 'demo' in title.text.lower():
+                            return True
+                            
+                        # Verifica se há menção explícita de demo na descrição
+                        desc = container.find('div', class_='game_purchase_subtitle')
+                        if desc and 'demo' in desc.text.lower():
+                            return True
+                            
+                        return False
+
+                    def extract_price_from_container(container):
+                        # Procura pelo preço com desconto
+                        price = container.find('div', class_='discount_final_price')
+                        if price and price.text.strip():
+                            return price.text.strip()
                         
-                    # Verifica se há menção explícita de demo na descrição
-                    desc = container.find('div', class_='game_purchase_subtitle')
-                    if desc and 'demo' in desc.text.lower():
-                        return True
+                        # Se não houver desconto, procura pelo preço normal
+                        price = container.find('div', class_='game_purchase_price price')
+                        if price and price.text.strip():
+                            text = price.text.strip()
+                            if 'free' not in text.lower():
+                                return text
                         
-                    return False
+                        return None
 
-                def extract_price_from_container(container):
-                    # Procura pelo preço com desconto
-                    price = container.find('div', class_='discount_final_price')
-                    if price and price.text.strip():
-                        return price.text.strip()
+                    # Procura na área de compra principal
+                    purchase_area = soup.find('div', {'id': 'game_area_purchase'})
+                    if purchase_area:
+                        purchase_containers = purchase_area.find_all('div', class_='game_area_purchase_game')
+                        
+                        # Primeiro, procura pelo container do jogo principal (não demo, não bundle)
+                        for container in purchase_containers:
+                            if not is_demo(container) and not is_bundle_or_pack(container):
+                                price = extract_price_from_container(container)
+                                if price:
+                                    return price, has_cards
+                        
+                        # Se não encontrou preço no jogo principal, procura em outros containers
+                        for container in purchase_containers:
+                            if not is_bundle_or_pack(container):  # Ignora apenas bundles
+                                price = extract_price_from_container(container)
+                                if price:
+                                    return price, has_cards
                     
-                    # Se não houver desconto, procura pelo preço normal
-                    price = container.find('div', class_='game_purchase_price price')
-                    if price and price.text.strip():
-                        text = price.text.strip()
-                        if 'free' not in text.lower():
-                            return text
+                    # Verifica se é um jogo gratuito
+                    free_indicators = [
+                        'free to play',
+                        'play for free',
+                        'download for free'
+                    ]
                     
-                    return None
-
-                # Procura na área de compra principal
-                purchase_area = soup.find('div', {'id': 'game_area_purchase'})
-                if purchase_area:
-                    purchase_containers = purchase_area.find_all('div', class_='game_area_purchase_game')
+                    game_area = soup.find('div', {'class': 'game_area_purchase'})
+                    if game_area:
+                        game_text = game_area.text.lower()
+                        if not any(indicator in game_text for indicator in free_indicators):
+                            # Se não encontrou indicadores de free to play, retorna N/A
+                            return 'N/A', has_cards
+                        else:
+                            # Só retorna Free se realmente encontrou indicadores de free to play
+                            return 'Free', has_cards
                     
-                    # Primeiro, procura pelo container do jogo principal (não demo, não bundle)
-                    for container in purchase_containers:
-                        if not is_demo(container) and not is_bundle_or_pack(container):
-                            price = extract_price_from_container(container)
-                            if price:
-                                return price, has_cards
-                    
-                    # Se não encontrou preço no jogo principal, procura em outros containers
-                    for container in purchase_containers:
-                        if not is_bundle_or_pack(container):  # Ignora apenas bundles
-                            price = extract_price_from_container(container)
-                            if price:
-                                return price, has_cards
+                    return 'N/A', has_cards
                 
-                # Verifica se é um jogo gratuito
-                free_indicators = [
-                    'free to play',
-                    'play for free',
-                    'download for free'
-                ]
+                return f'Error: {response.status_code}', False
                 
-                game_area = soup.find('div', {'class': 'game_area_purchase'})
-                if game_area:
-                    game_text = game_area.text.lower()
-                    if not any(indicator in game_text for indicator in free_indicators):
-                        # Se não encontrou indicadores de free to play, retorna N/A
-                        return 'N/A', has_cards
-                    else:
-                        # Só retorna Free se realmente encontrou indicadores de free to play
-                        return 'Free', has_cards
-                
-                return 'N/A', has_cards
-            
-            return f'Error: {response.status_code}', False
-            
-        except Exception as e:
-            logging.error(f"Error fetching price for AppID {app_id}: {e}")
-            return f'Error: {str(e)}', False
+            except requests.exceptions.RequestException as e:
+                retry_count += 1
+                logging.error(f"Request error for AppID {app_id}: {e}, retry {retry_count}/{max_retries}")
+                if retry_count < max_retries:
+                    time.sleep(retry_count * 2)  # Progressive backoff
+                else:
+                    return f'Error: {str(e)}', False
+            except Exception as e:
+                logging.error(f"Error fetching price for AppID {app_id}: {e}")
+                return f'Error: {str(e)}', False
+        
+        return 'Error: Max retries exceeded', False
 
     def start_fetching_prices(self):
         self.status_var.set("Fetching prices...")
