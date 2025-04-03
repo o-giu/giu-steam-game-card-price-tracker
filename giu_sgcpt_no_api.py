@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 class SteamPriceTracker:
     def __init__(self, root):
         self.root = root
-        self.root.title("Giu - Steam Game Card Price Tracker - v1.0")
+        self.root.title("Giu - Steam Game Card Price Tracker - v1.1")
         self.root.geometry("1200x800")
         
         # Centralizar a janela na tela
